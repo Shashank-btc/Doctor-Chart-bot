@@ -1,52 +1,117 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useRef, useEffect } from 'react';
 import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import MessageInput from '@/components/docu-chat/MessageInput';
+import MessageItem from '@/components/docu-chat/MessageItem';
+import SuggestionsPanel from '@/components/docu-chat/SuggestionsPanel';
+import type { Message } from '@/types';
 
-export default function HomePage() {
-  const [count, setCount] = useState(0);
+export default function DocuChatPage() {
+  const [doctorMessages, setDoctorMessages] = useState<Message[]>([]);
+  const [patientMessages, setPatientMessages] = useState<Message[]>([]);
+  const [doctorInput, setDoctorInput] = useState('');
+  const [patientInput, setPatientInput] = useState('');
+
+  const doctorScrollAreaRef = useRef<HTMLDivElement>(null);
+  const patientScrollAreaRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = (ref: React.RefObject<HTMLDivElement>) => {
+    if (ref.current) {
+      const scrollableViewport = ref.current.querySelector('div[data-radix-scroll-area-viewport]');
+      if (scrollableViewport) {
+        scrollableViewport.scrollTop = scrollableViewport.scrollHeight;
+      }
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom(doctorScrollAreaRef);
+  }, [doctorMessages]);
+
+  useEffect(() => {
+    scrollToBottom(patientScrollAreaRef);
+  }, [patientMessages]);
+
+  const handleSendMessage = (
+    text: string,
+    sender: 'doctor' | 'patient',
+    setMessages: React.Dispatch<React.SetStateAction<Message[]>>,
+    setInput: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    if (text.trim() === '') return;
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      text,
+      sender,
+      timestamp: new Date(),
+    };
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    setInput('');
+  };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-6 md:p-8 bg-background text-foreground font-body">
-      <Card className="w-full max-w-md shadow-lg rounded-lg">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-headline text-center text-primary">
-            My New UI Application
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center space-y-6">
-          <p className="text-lg text-center text-foreground">
-            Welcome! This is a simple React UI.
-          </p>
-          
-          <Separator />
+    <div className="flex flex-col h-screen bg-background text-foreground font-body">
+      <header className="p-4 bg-primary text-primary-foreground shadow-md">
+        <h1 className="text-2xl font-headline text-center">DocuChat</h1>
+      </header>
 
-          <div className="flex flex-col items-center space-y-3">
-            <p className="text-base text-muted-foreground">Counter Example:</p>
-            <div className="flex items-center space-x-3">
-              <Button onClick={() => setCount(count - 1)} variant="outline" size="lg">
-                Decrement
-              </Button>
-              <span className="text-3xl font-bold w-16 text-center text-accent tabular-nums">
-                {count}
-              </span>
-              <Button onClick={() => setCount(count + 1)} variant="default" size="lg">
-                Increment
-              </Button>
+      <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-px bg-border overflow-hidden">
+        {/* Doctor's Area */}
+        <div className="flex flex-col bg-background p-4 overflow-hidden">
+          <Card className="flex-grow flex flex-col shadow-lg rounded-lg overflow-hidden">
+            <CardContent className="p-4 flex-grow overflow-y-auto">
+              <ScrollArea className="h-full pr-3" ref={doctorScrollAreaRef}>
+                {doctorMessages.length === 0 && <p className="text-sm text-muted-foreground italic text-center py-4">Doctor's chat history will appear here.</p>}
+                {doctorMessages.map((msg) => (
+                  <MessageItem key={msg.id} message={msg} />
+                ))}
+              </ScrollArea>
+            </CardContent>
+            <Separator />
+            <div className="p-4 border-t">
+              <MessageInput
+                label="Doctor Message"
+                value={doctorInput}
+                onChange={setDoctorInput}
+                onSend={() => handleSendMessage(doctorInput, 'doctor', setDoctorMessages, setDoctorInput)}
+                placeholder="Type doctor's message..."
+              />
             </div>
-          </div>
+          </Card>
+        </div>
 
-          <Separator />
-          
-          <p className="text-sm text-center text-muted-foreground pt-2">
-            You can start building your UI components in 
-            <code className="px-1 py-0.5 mx-1 bg-muted text-muted-foreground rounded-sm text-xs">src/components</code> 
-            and use them here.
-          </p>
-        </CardContent>
-      </Card>
-    </main>
+        {/* Patient's Area */}
+        <div className="flex flex-col bg-background p-4 overflow-hidden">
+          <Card className="flex-grow flex flex-col shadow-lg rounded-lg overflow-hidden">
+            <CardContent className="p-4 flex-grow overflow-y-auto">
+              <ScrollArea className="h-full pr-3" ref={patientScrollAreaRef}>
+                {patientMessages.length === 0 && <p className="text-sm text-muted-foreground italic text-center py-4">Patient's chat history will appear here.</p>}
+                {patientMessages.map((msg) => (
+                  <MessageItem key={msg.id} message={msg} />
+                ))}
+              </ScrollArea>
+            </CardContent>
+            <Separator />
+            <div className="p-4 border-t">
+              <MessageInput
+                label="Patient Message"
+                value={patientInput}
+                onChange={setPatientInput}
+                onSend={() => handleSendMessage(patientInput, 'patient', setPatientMessages, setPatientInput)}
+                placeholder="Type patient's message..."
+              />
+            </div>
+          </Card>
+        </div>
+      </div>
+      
+      <Separator />
+      <div className="p-4 bg-background">
+        <SuggestionsPanel />
+      </div>
+    </div>
   );
 }

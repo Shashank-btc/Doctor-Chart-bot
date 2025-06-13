@@ -1,8 +1,6 @@
-// This file can be used for your new application's types.
-// The previous DocuChat specific types have been removed.
-
-// Example:
-// export interface User {
-//   id: string;
-//   name: string;
-// }
+export interface Message {
+  id: string;
+  text: string;
+  sender: 'doctor' | 'patient';
+  timestamp: Date;
+}
