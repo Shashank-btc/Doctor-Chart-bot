@@ -3,24 +3,16 @@
 import * as React from "react";
 import { useState, useEffect, useRef } from "react";
 import type { Message } from "@/types";
-import { generateSuggestedPhrases } from "@/ai/flows/generate-suggested-phrases";
 import { MessageInput } from "@/components/docu-chat/MessageInput";
 import { MessageItem } from "@/components/docu-chat/MessageItem";
-import { SuggestionsPanel } from "@/components/docu-chat/SuggestionsPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
 import { PersonIcon, ChatBubbleIcon } from "@radix-ui/react-icons";
 
 
-const PATIENT_DETAILS = "The patient is here for a general consultation. Consider asking about their primary concerns, symptoms, medical history, and current medications. Be empathetic and ensure the patient feels heard.";
-
 export default function DocuChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const { toast } = useToast();
 
   const patientScrollAreaRef = useRef<HTMLDivElement>(null);
   const doctorScrollAreaRef = useRef<HTMLDivElement>(null);
@@ -36,11 +28,11 @@ export default function DocuChatPage() {
   
   useEffect(() => {
     scrollToBottom(patientScrollAreaRef);
-  }, [messages.filter(m => m.sender === 'patient')]);
+  }, [messages.filter(m => m.sender === 'patient').length]); // Trigger on count change
 
   useEffect(() => {
     scrollToBottom(doctorScrollAreaRef);
-  }, [messages.filter(m => m.sender === 'doctor')]);
+  }, [messages.filter(m => m.sender === 'doctor').length]); // Trigger on count change
 
 
   const addMessage = (sender: "doctor" | "patient", text: string) => {
@@ -60,56 +52,6 @@ export default function DocuChatPage() {
   const handleSendPatientMessage = (text: string) => {
     addMessage("patient", text);
   };
-
-  const handleDoctorSuggestionClick = (suggestionText: string) => {
-    addMessage("doctor", suggestionText);
-  };
-
-  useEffect(() => {
-    if (messages.length === 0) {
-        // Optionally set initial suggestions or leave empty
-        // For instance, provide some generic opening suggestions
-        setSuggestions([
-            "Hello, how can I help you today?",
-            "What brings you in today?",
-            "Please tell me about your symptoms."
-        ]);
-        return;
-    }
-
-    const fetchSuggestions = async () => {
-      setIsLoadingSuggestions(true);
-      try {
-        const conversationHistory = messages
-          .map((m) => `${m.sender === "doctor" ? "Doctor" : "Patient"}: ${m.text}`)
-          .join("\n");
-        
-        const result = await generateSuggestedPhrases({
-          conversationHistory,
-          patientDetails: PATIENT_DETAILS,
-        });
-        setSuggestions(result.suggestedPhrases || []);
-      } catch (error) {
-        console.error("Error fetching suggestions:", error);
-        toast({
-          title: "Error",
-          description: "Could not load AI suggestions. Please try again.",
-          variant: "destructive",
-        });
-        setSuggestions([]);
-      } finally {
-        setIsLoadingSuggestions(false);
-      }
-    };
-
-    // Fetch suggestions if the last message was from patient or if it's the first doctor message after patient.
-    // Or more simply, fetch after any new message to keep suggestions fresh.
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage) {
-        fetchSuggestions();
-    }
-
-  }, [messages, toast]);
   
   return (
     <main className="flex flex-col h-screen bg-background text-foreground p-4 sm:p-6 md:p-8 font-body gap-4">
@@ -121,7 +63,6 @@ export default function DocuChatPage() {
             <MessageInput
               role="Doctor"
               onSendMessage={handleSendDoctorMessage}
-              isLoading={isLoadingSuggestions}
             />
             <MessageInput
               role="Patient"
@@ -176,17 +117,6 @@ export default function DocuChatPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
-
-      <Separator/>
-
-      {/* Bottom Section: AI Suggestions */}
-      <div className="h-1/3 md:h-1/4 lg:h-1/3 max-h-[300px] md:max-h-[350px] overflow-hidden">
-        <SuggestionsPanel
-          suggestions={suggestions}
-          onSuggestionClick={handleDoctorSuggestionClick}
-          isLoading={isLoadingSuggestions}
-        />
       </div>
     </main>
   );
