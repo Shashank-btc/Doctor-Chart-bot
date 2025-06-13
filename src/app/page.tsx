@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -5,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import type { Message } from "@/types";
 import { MessageInput } from "@/components/docu-chat/MessageInput";
 import { MessageItem } from "@/components/docu-chat/MessageItem";
+import { SuggestionsPanel } from "@/components/docu-chat/SuggestionsPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -28,11 +30,11 @@ export default function DocuChatPage() {
   
   useEffect(() => {
     scrollToBottom(patientScrollAreaRef);
-  }, [messages.filter(m => m.sender === 'patient').length]); // Trigger on count change
+  }, [messages.filter(m => m.sender === 'patient').length]); 
 
   useEffect(() => {
     scrollToBottom(doctorScrollAreaRef);
-  }, [messages.filter(m => m.sender === 'doctor').length]); // Trigger on count change
+  }, [messages.filter(m => m.sender === 'doctor').length]); 
 
 
   const addMessage = (sender: "doctor" | "patient", text: string) => {
@@ -117,6 +119,11 @@ export default function DocuChatPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+      
+      {/* Suggestions Panel */}
+      <div className="mt-auto"> {/* Ensures it's pushed to the bottom if main content is short, but flex-grow above handles most cases */}
+        <SuggestionsPanel />
       </div>
     </main>
   );
